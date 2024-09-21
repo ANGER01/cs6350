@@ -21,11 +21,20 @@ class DecisionTree:
         self.n_features=n_features
         self.root: Node=None
 
-    def fit(self, X, y):
+    def fit(self, X, y, func):
+        f = self.func_chooser(func)
         self.n_features = X.shape[1] if not self.n_features else min(X.shape[1],self.n_features)
-        self.root = self._grow_tree(X, y)
+        self.root = self._grow_tree(X, y, f)
 
-    def _grow_tree(self, X, y, depth=0):
+    def func_chooser(self, func: str):
+        if func.lower() == "gini":
+            return self._gini_index
+        elif (func.lower() == "majority error") or (func.lower() == "me"):
+            return self._majority_error
+        else:
+            return self._entropy
+    
+    def _grow_tree(self, X, y, func, depth=0):
         n_samples, n_feats = X.shape
         n_labels = len(np.unique(y))
 
@@ -37,7 +46,7 @@ class DecisionTree:
         feat_idxs = np.random.choice(self.n_features, n_feats, replace=False)
 
         # find the best split
-        best_feature = self._best_split(X, y, feat_idxs)
+        best_feature = self._best_split(X, y, feat_idxs, func=func)
         # create child nodes
         child_indices = self._split(X[:, best_feature])
         # for each unique value in column_X grow tree?
@@ -45,24 +54,24 @@ class DecisionTree:
         for index in child_indices:
             choices = X[index,:]
             choice = choices[0][best_feature]
-            kids.append((self._grow_tree(choices, y[index], depth+1),choice))
+            kids.append((self._grow_tree(choices, y[index], func, depth+1),choice))
             
         return Node(best_feature, kids, depth=depth)
 
-    def _best_split(self, X, y, feat_idxs):
+    def _best_split(self, X, y, feat_idxs, func):
         best_gain = -1
         split_idx = None
         for feat_idx in feat_idxs:
             X_column = X[:,feat_idx]
-            gain = self._information_gain(y, X_column)
+            gain = self._information_gain(y, X_column, func=func)
             if gain > best_gain:
                 best_gain = gain
                 split_idx = feat_idx
         return split_idx
 
-    def _information_gain(self, y, X_column):
+    def _information_gain(self, y, X_column, func):
         # parent entropy
-        parent_entropy = self._entropy(y)
+        parent_entropy = func(y)
         # create children
         children = self._split(X_column)
         n = len(y)    
@@ -73,7 +82,7 @@ class DecisionTree:
         # calculate the weighted avg. entropy of children
         for child in children:
             child_length = len(child)
-            child_entropy = self._entropy(y[child])
+            child_entropy = func(y[child])
             weighted_entropy += (child_length/n) * child_entropy
         # calculate the IG
 
@@ -87,13 +96,15 @@ class DecisionTree:
             all_splits.append(np.argwhere(X_column == item).flatten())
         return all_splits
 
-    def _gini_index(series: pd.Series) -> float:
-        ps = series.value_counts(normalize=True)
+    def _gini_index(self, y) -> float:
+        _, counts = np.unique(y, return_counts=True)
+        ps = counts / counts.sum()
     
         return 1 - (sum(ps**2))
 
-    def _majority_error(series: pd.Series) -> float:
-        ps = series.value_counts(normalize=True)
+    def _majority_error(self, y) -> float:
+        _, counts = np.unique(y, return_counts=True)
+        ps = counts / counts.sum()
         return np.min(ps)
 
     def _entropy(self, y):

@@ -6,12 +6,12 @@ import numpy as np
 
 
 path = os.getcwd()
-p_train = os.path.join(path, "DecisionTree", "car", "train.csv")
+p_train = os.path.join(path, "DecisionTree", "bank", "train.csv")
 train_df = pd.read_csv(p_train, header=None)
 
 train_data = train_df.values
 
-p_test = os.path.join(path, "DecisionTree", "car", "test.csv")
+p_test = os.path.join(path, "DecisionTree", "bank", "test.csv")
 test_df = pd.read_csv(p_test, header=None)
 
 test_data = test_df.values
@@ -19,7 +19,19 @@ test_data = test_df.values
 X_train, y_train = train_data[:,:-1], train_data[:, -1]
 X_test, y_test = test_data[:,:-1], test_data[:, -1]
 
-st = X_train[:,2]
+
+for i in range(0, 6):
+    print(i)
+"""cols = test_df.columns
+
+for col in cols:
+    if test_df[col].dtype != "O":
+        median = test_df[col].median()
+        test_df[col] = test_df[col].apply((lambda x: 'above' if x >= median else 'below'))
+    
+for col in cols:
+    print(test_df[col].dtype)"""
+    
 
 """all_splits = []
 items = np.unique(X_column)
@@ -77,7 +89,3 @@ def entropy(y):
     return -np.sum((ps * np.log2(ps + 1e-9)))
 
 
-aaaa = split(st)
-
-fp = X_train[aaaa[1],:]
-print(fp)
