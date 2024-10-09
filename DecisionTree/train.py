@@ -27,12 +27,12 @@ def doubly_clean(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_data(folder: str):
     path = os.getcwd()
-    p_train = os.path.join(path, "DecisionTree", folder, "train.csv")
+    p_train = os.path.join(path, folder, "train.csv")
     train_df = pd.read_csv(p_train, header=None)
-
+    train_df = clean(train_df)
     train_data = train_df.values
 
-    p_test = os.path.join(path, "DecisionTree", folder, "test.csv")
+    p_test = os.path.join(path, folder, "test.csv")
     test_df = pd.read_csv(p_test, header=None)
     test_df = clean(test_df)
     test_data = test_df.values
@@ -64,10 +64,12 @@ Bank_X_train, Bank_y_train, Bank_X_test, Bank_y_test = get_data("bank")
 car_max_depth = Car_X_train.shape[1]
 bank_max_depth = Bank_X_train.shape[1]
 
-result(car_max_depth, Car_X_train, Car_y_train, Car_X_test, Car_y_test, func="Entropy")
-result(car_max_depth, Car_X_train, Car_y_train, Car_X_test, Car_y_test, func="Gini")
-result(car_max_depth, Car_X_train, Car_y_train, Car_X_test, Car_y_test, func="Majority Error")
+print(Bank_X_train.shape)
+#print(Bank_X_train)
+#result(car_max_depth, Car_X_train, Car_y_train, Car_X_test, Car_y_test, func="Entropy")
+#result(car_max_depth, Car_X_train, Car_y_train, Car_X_test, Car_y_test, func="Gini")
+#result(car_max_depth, Car_X_train, Car_y_train, Car_X_test, Car_y_test, func="Majority Error")
 
 result(bank_max_depth, Bank_X_train, Bank_y_train, Bank_X_test, Bank_y_test, func="Entropy")
-result(bank_max_depth, Bank_X_train, Bank_y_train, Bank_X_test, Bank_y_test, func="Gini")
-result(bank_max_depth, Bank_X_train, Bank_y_train, Bank_X_test, Bank_y_test, func="Majority Error")
+#result(bank_max_depth, Bank_X_train, Bank_y_train, Bank_X_test, Bank_y_test, func="Gini")
+#result(bank_max_depth, Bank_X_train, Bank_y_train, Bank_X_test, Bank_y_test, func="Majority Error")
