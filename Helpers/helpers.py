@@ -1,7 +1,21 @@
 import os
 import numpy as np
 import pandas as pd
-from DecisionTree.decision_tree import DecisionTree
+from DecisionTree.decision_tree import Tree
+
+def create_stump(x, y) -> Tree:
+    """Takes cleaned data(Not Numerical, only catagorical)
+
+    Args:
+        x (ndarray): pandas data frame with feature values
+        y (ndarray): pandas series with labels
+
+    Returns:
+        DecisionTree: instance of decision tree
+    """
+    stump = Tree(max_depth=1)
+    stump.fit(x, y, func="Entropy")
+    return stump
 
 def accuracy(y_test, y_pred):
     return np.sum(y_test == y_pred) / len(y_test)
@@ -44,7 +58,7 @@ def get_data(folder: str):
 
 def result(max_depth, X_train, y_train, X_test, y_test, func=""):
     for i in range(1,max_depth + 1):
-        clf = DecisionTree(max_depth=i)
+        clf = Tree(max_depth=i)
         clf.fit(X_train, y_train, func=func)
 
         train_pred = clf.predict(X_train)
