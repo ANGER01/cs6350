@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import pandas as pd
-from decision_tree import DecisionTree
+from decision_tree import Tree
 
 def accuracy(y_test, y_pred):
     return np.sum(y_test == y_pred) / len(y_test)
@@ -44,7 +44,7 @@ def get_data(folder: str):
 
 def result(max_depth, X_train, y_train, X_test, y_test, func=""):
     for i in range(1,max_depth + 1):
-        clf = DecisionTree(max_depth=i)
+        clf = Tree(max_depth=i)
         clf.fit(X_train, y_train, func=func)
 
         train_pred = clf.predict(X_train)
