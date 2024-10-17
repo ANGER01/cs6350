@@ -15,11 +15,12 @@ class Node:
 
 
 class Tree:
-    def __init__(self, min_samples_split=2, max_depth=100, n_features=None):
+    def __init__(self, min_samples_split=2, max_depth=100, n_features=None, weights = None):
         self.min_samples_split=min_samples_split
         self.max_depth=max_depth
         self.n_features=n_features
         self.root: Node=None
+        self.weights = weights
 
     def fit(self, X, y, func):
         f = self.func_chooser(func)
@@ -31,6 +32,8 @@ class Tree:
             return self._gini_index
         elif (func.lower() == "majority error") or (func.lower() == "me"):
             return self._majority_error
+        elif (func.lower() == "weights") or (func.lower() == "w"):
+            return self._weighted_entropy
         else:
             return self._entropy
     
@@ -71,7 +74,7 @@ class Tree:
 
     def _information_gain(self, y, X_column, func):
         # parent entropy
-        parent_entropy = func(y)
+        parent_entropy = func(y, self.weights)
         # create children
         children = self._split(X_column)
         n = len(y)    
@@ -82,7 +85,7 @@ class Tree:
         # calculate the weighted avg. entropy of children
         for child in children:
             child_length = len(child)
-            child_entropy = func(y[child])
+            child_entropy = func(y[child], self.weights)
             weighted_entropy += (child_length/n) * child_entropy
         # calculate the IG
 
@@ -96,22 +99,31 @@ class Tree:
             all_splits.append(np.argwhere(X_column == item).flatten())
         return all_splits
 
-    def _gini_index(self, y) -> float:
+    def _gini_index(self, y, w) -> float:
         _, counts = np.unique(y, return_counts=True)
         ps = counts / counts.sum()
     
         return 1 - (sum(ps**2))
 
-    def _majority_error(self, y) -> float:
+    def _majority_error(self, y, w) -> float:
         _, counts = np.unique(y, return_counts=True)
         ps = counts / counts.sum()
         return np.min(ps)
 
-    def _entropy(self, y):
+    def _entropy(self, y, w):
         _, counts = np.unique(y, return_counts=True)
         ps = counts / counts.sum()
         return -np.sum((ps * np.log2(ps + 1e-9)))
 
+    def _weighted_entropy(self, y, w):
+        unique_values = np.unique(y)
+        weighted_sum = np.sum(w)
+        entropy = 0
+        for val in unique_values:
+            p_val = np.sum(w[y == val]) / weighted_sum
+            if p_val > 0:
+                entropy -= p_val * np.log2(p_val)
+        return entropy
 
     def _most_common_label(self, y):
         counter = Counter(y)
