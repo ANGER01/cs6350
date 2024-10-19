@@ -15,17 +15,16 @@ class Node:
 
 
 class Tree:
-    def __init__(self, min_samples_split=2, max_depth=100, n_features=None, weights = None):
+    def __init__(self, min_samples_split=2, max_depth=100, n_features=None):
         self.min_samples_split=min_samples_split
         self.max_depth=max_depth
         self.n_features=n_features
         self.root: Node=None
-        self.weights = weights
 
-    def fit(self, X, y, func):
+    def fit(self, X, y, weights=None, func=""):
         f = self.func_chooser(func)
         self.n_features = X.shape[1] if not self.n_features else min(X.shape[1],self.n_features)
-        self.root = self._grow_tree(X, y, f)
+        self.root = self._grow_tree(X, y, weights, f)
 
     def func_chooser(self, func: str):
         if func.lower() == "gini":
@@ -37,7 +36,7 @@ class Tree:
         else:
             return self._entropy
     
-    def _grow_tree(self, X, y, func, depth=0):
+    def _grow_tree(self, X, y, weights, func, depth=0):
         n_samples, n_feats = X.shape
         n_labels = len(np.unique(y))
 
@@ -49,7 +48,7 @@ class Tree:
         feat_idxs = np.random.choice(self.n_features, n_feats, replace=False)
 
         # find the best split
-        best_feature = self._best_split(X, y, feat_idxs, func=func)
+        best_feature = self._best_split(X, y, feat_idxs, weights, func=func)
         # create child nodes
         child_indices = self._split(X[:, best_feature])
         # for each unique value in column_X grow tree?
@@ -61,20 +60,20 @@ class Tree:
             
         return Node(best_feature, kids, depth=depth)
 
-    def _best_split(self, X, y, feat_idxs, func):
+    def _best_split(self, X, y, feat_idxs, w, func):
         best_gain = -1
         split_idx = None
         for feat_idx in feat_idxs:
             X_column = X[:,feat_idx]
-            gain = self._information_gain(y, X_column, func=func)
+            gain = self._information_gain(y, X_column, w,  func=self._weighted_entropy)
             if gain > best_gain:
                 best_gain = gain
                 split_idx = feat_idx
         return split_idx
 
-    def _information_gain(self, y, X_column, func):
+    def _information_gain(self, y, X_column, w, func):
         # parent entropy
-        parent_entropy = func(y, self.weights)
+        parent_entropy = func(y, w)
         # create children
         children = self._split(X_column)
         n = len(y)    
@@ -85,7 +84,7 @@ class Tree:
         # calculate the weighted avg. entropy of children
         for child in children:
             child_length = len(child)
-            child_entropy = func(y[child], self.weights)
+            child_entropy = func(y[child], w)
             weighted_entropy += (child_length/n) * child_entropy
         # calculate the IG
 
@@ -115,14 +114,37 @@ class Tree:
         ps = counts / counts.sum()
         return -np.sum((ps * np.log2(ps + 1e-9)))
 
-    def _weighted_entropy(self, y, w):
-        unique_values = np.unique(y)
-        weighted_sum = np.sum(w)
-        entropy = 0
-        for val in unique_values:
-            p_val = np.sum(w[y == val]) / weighted_sum
-            if p_val > 0:
-                entropy -= p_val * np.log2(p_val)
+    def _weighted_entropy(self, y, weights):
+
+        # Convert inputs to numpy arrays for easier computation
+        y = np.array(y)
+        weights = np.array(weights)
+
+        # Find unique classes and their indices
+        classes = y
+        print(len(y))
+        print(len(weights))
+        # Calculate the total weight
+        total_weight = np.sum(weights)
+
+        # Initialize entropy
+        entropy = 0.0
+
+        # Calculate weighted probabilities for each class
+        for c in classes:
+            # Get the indices of samples in class c
+            class_mask = (y == c)
+
+            # Calculate the total weight for class c
+            class_weight = np.sum(weights[class_mask])
+
+            # Probability of the class (weighted)
+            p_class = class_weight / total_weight
+
+            # Avoid log(0) by only considering non-zero probabilities
+            if p_class > 0:
+                entropy -= p_class * np.log2(p_class)
+
         return entropy
 
     def _most_common_label(self, y):
