@@ -141,20 +141,23 @@ def load_data():
 if __name__ == "__main__":
     X_train, y_train, X_test, y_test = load_data()
     
-    perceptron = Perceptron(learning_rate=0.1, n_iterations=5)
+    perceptron = Perceptron(learning_rate=0.1, n_iterations=10)
     perceptron.fit(X_train, y_train)
     predictions = perceptron.predict(X_test)
     accuracy = np.mean(predictions == y_test)
     print(f"Standard Perceptron Test Accuracy: {accuracy:.4f}")
+    print(perceptron.weights)
     
-    voted_perceptron = VotedPerceptron(learning_rate=0.5, n_iterations=5)
+    voted_perceptron = VotedPerceptron(learning_rate=0.5, n_iterations=10)
     voted_perceptron.fit(X_train, y_train)
     voted_predictions = voted_perceptron.predict(X_test)
     voted_accuracy = np.mean(voted_predictions == y_test)
     print(f"Voted Perceptron Test Accuracy: {voted_accuracy:.4f}")
+    print(voted_perceptron.weights_list)
     
-    averaged_perceptron = AveragedPerceptron(learning_rate=0.1, n_iterations=5)
+    averaged_perceptron = AveragedPerceptron(learning_rate=0.1, n_iterations=10)
     averaged_perceptron.fit(X_train, y_train)
     averaged_predictions = averaged_perceptron.predict(X_test)
     averaged_accuracy = np.mean(averaged_predictions == y_test)
     print(f"Averaged Perceptron Test Accuracy: {averaged_accuracy:.4f}")
+    print(averaged_perceptron.weights)
