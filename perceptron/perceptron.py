@@ -163,4 +163,4 @@ if __name__ == "__main__":
     averaged_predictions = averaged_perceptron.predict(X_test)
     averaged_accuracy = np.mean(averaged_predictions == y_test)
     print(f"\nAveraged Perceptron Test Accuracy: {averaged_accuracy:.4f}")
-    print(averaged_perceptron.weights)
+    print(averaged_perceptron.averaged_weights)
