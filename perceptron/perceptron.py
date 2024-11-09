@@ -46,7 +46,7 @@ class VotedPerceptron:
         n_samples, n_features = X.shape
         current_weights = np.zeros(n_features)
         current_bias = 0
-        count = 1
+        correct_count = 0
 
         y_ = np.where(y > 0, 1, 0)
 
@@ -56,22 +56,22 @@ class VotedPerceptron:
                 y_predicted = self.activation_func(linear_output)
 
                 if y_[idx] != y_predicted:
-                    if count > 0:
+                    if correct_count > 0:
                         self.weights_list.append(current_weights.copy())
                         self.bias_list.append(current_bias)
-                        self.count_list.append(count)
+                        self.count_list.append(correct_count)
                     
                     update = self.learning_rate * (y_[idx] - y_predicted)
                     current_weights = current_weights + update * x_i
                     current_bias = current_bias + update
-                    count = 1
+                    correct_count = 0
                 else:
-                    count += 1
+                    correct_count += 1
 
-        if count > 0:
+        if correct_count > 0:
             self.weights_list.append(current_weights)
             self.bias_list.append(current_bias)
-            self.count_list.append(count)
+            self.count_list.append(correct_count)
 
     def predict(self, X: np.ndarray):
         predictions = np.zeros(len(X))
@@ -152,13 +152,15 @@ if __name__ == "__main__":
     voted_perceptron.fit(X_train, y_train)
     voted_predictions = voted_perceptron.predict(X_test)
     voted_accuracy = np.mean(voted_predictions == y_test)
-    print(f"Voted Perceptron Test Accuracy: {voted_accuracy:.4f}")
-    print(np.sum(voted_perceptron.weights_list, axis=0))
-    print(np.mean(voted_perceptron.weights_list, axis=0))
+    print(f"\nVoted Perceptron Test Accuracy: {voted_accuracy:.4f}")
+    
+    print("\nVoted Perceptron Weight Vectors and Counts:")
+    for weights, count in zip(voted_perceptron.weights_list, voted_perceptron.count_list):
+        print(f"{weights} : {count}")
     
     averaged_perceptron = AveragedPerceptron(learning_rate=0.1, n_iterations=10)
     averaged_perceptron.fit(X_train, y_train)
     averaged_predictions = averaged_perceptron.predict(X_test)
     averaged_accuracy = np.mean(averaged_predictions == y_test)
-    print(f"Averaged Perceptron Test Accuracy: {averaged_accuracy:.4f}")
+    print(f"\nAveraged Perceptron Test Accuracy: {averaged_accuracy:.4f}")
     print(averaged_perceptron.weights)
