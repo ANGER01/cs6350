@@ -153,7 +153,8 @@ if __name__ == "__main__":
     voted_predictions = voted_perceptron.predict(X_test)
     voted_accuracy = np.mean(voted_predictions == y_test)
     print(f"Voted Perceptron Test Accuracy: {voted_accuracy:.4f}")
-    print(voted_perceptron.weights_list)
+    print(np.sum(voted_perceptron.weights_list, axis=0))
+    print(np.mean(voted_perceptron.weights_list, axis=0))
     
     averaged_perceptron = AveragedPerceptron(learning_rate=0.1, n_iterations=10)
     averaged_perceptron.fit(X_train, y_train)
