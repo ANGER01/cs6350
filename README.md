@@ -10,3 +10,7 @@ You can then use the tree with the predict function by giving it any non-labeled
 --PERCEPTRON--
 To run the perceptron algorithms, you can use the perceptron.py file. You need all the required dependencies
 and you need to run it from inside the perceptron folder. From there you can either run python perceptron.py or hit the run button in your IDE of choice.
+
+
+--SVM--
+To run svm.py first go to the svm directory and input python svm.py into the terminal and that is all you need to do
