@@ -48,25 +48,20 @@ def subgradients(x, y, w, b, C):
     :C: tradeoff/ hyperparameter
     
     """
-    subgrad_w = 0
+    # Initialize subgradients
+    subgrad_w = w  # Changed: Initialize with w for regularization term
     subgrad_b = 0
     
-    # sum over all subgradients of hinge loss for a given samples x,y
+    # Calculate decision value
     f_xi = np.dot(w.T, x) + b
-
     decision_value = y * f_xi
 
+    # Update subgradients based on hinge loss condition
     if decision_value < 1:
-        subgrad_w += - y*x
-        subgrad_b += -1 * y
-    else:
-        subgrad_w += 0
-        subgrad_b += 0
+        subgrad_w = subgrad_w + C * (-y * x)  # Changed: Add to regularization term
+        subgrad_b = -C * y
     
-    # multiply by C after summation of all subgradients for a given samples of x,y
-    subgrad_w = C * subgrad_w
-    subgrad_b = C * subgrad_b
-    return (add_regularization(w, subgrad_w), subgrad_b)
+    return (subgrad_w, subgrad_b)  # Removed: add_regularization() call as regularization is now included
 
 
 def stochastic_subgrad_descent(x_vals: np.array, y_vals: np.array, int_weights, int_bias, C,gamma_0, a, T=100):
@@ -119,7 +114,7 @@ def predict(x, w, b):
     Returns 1 if w·x + b ≥ 0, -1 otherwise
     """
     temp = np.dot(w, x) + b
-    print(f"temp: {temp}")
+    # print(f"temp: {temp}")
     return 1 if temp >= 0 else -1
 
 def calculate_error(X, y, w, b):
@@ -133,7 +128,7 @@ def calculate_error(X, y, w, b):
         prediction = predict(X[i], w, b)
         # Convert 0 labels to -1 for comparison
         actual = 1 if y[i] == 1 else -1
-        # print(f"Predicted: {prediction}")
+        print(f"Predicted: {prediction}")
         if prediction != actual:
             incorrect += 1
             
