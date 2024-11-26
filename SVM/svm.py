@@ -69,15 +69,15 @@ def subgradients(x, y, w, b, C):
     return (add_regularization(w, subgrad_w), subgrad_b)
 
 
-def stochastic_subgrad_descent(x_vals: np.array, y_vals: np.array, int_weights, int_bias, C, T=100, batch_size=32):
+def stochastic_subgrad_descent(x_vals: np.array, y_vals: np.array, int_weights, int_bias, C,gamma_0, a, T=100):
     """
-    Modified to use mini-batches and learning rate decay
+    Simple stochastic gradient descent implementation
     """
     w = int_weights
     b = int_bias
     n_samples = len(y_vals)
     
-    # Create indices array and shuffle
+    # Create indices array
     indices = np.arange(n_samples)
     
     best_w = w
@@ -88,31 +88,20 @@ def stochastic_subgrad_descent(x_vals: np.array, y_vals: np.array, int_weights, 
         # Shuffle data at the start of each epoch
         np.random.shuffle(indices)
         
-        # Mini-batch processing
-        for i in range(0, n_samples, batch_size):
-            batch_indices = indices[i:min(i + batch_size, n_samples)]
+        # Calculate learning rate
+        learning_rate = gamma_0 / (1 + (gamma_0 / a) * (t * n_samples))
+        
+        # Process each sample
+        for idx in indices:
+            x = x_vals[idx]
+            y = y_vals[idx]
             
-            # Calculate learning rate with decay
-            learning_rate = 1.0 / (1.0 + 0.01 * t)
-            
-            # Process mini-batch
-            grad_w = np.zeros_like(w)
-            grad_b = 0
-            
-            for idx in batch_indices:
-                x = x_vals[idx]
-                y = y_vals[idx]
-                sub_grads = subgradients(x, y, w, b, C)
-                grad_w += sub_grads[0]
-                grad_b += sub_grads[1]
-            
-            # Average gradients over mini-batch
-            grad_w /= len(batch_indices)
-            grad_b /= len(batch_indices)
+            # Get subgradients for single sample
+            w_grad, b_grad = subgradients(x, y, w, b, C)
             
             # Update weights and bias
-            w = w - learning_rate * grad_w
-            b = b - learning_rate * grad_b
+            w = w - learning_rate * w_grad
+            b = b - learning_rate * b_grad
         
         # Keep track of best model
         current_error = calculate_error(x_vals, y_vals, w, b)
@@ -129,7 +118,9 @@ def predict(x, w, b):
     Predict class using w and b
     Returns 1 if w·x + b ≥ 0, -1 otherwise
     """
-    return 1 if np.dot(w, x) + b >= 0 else -1
+    temp = np.dot(w, x) + b
+    print(f"temp: {temp}")
+    return 1 if temp >= 0 else -1
 
 def calculate_error(X, y, w, b):
     """
@@ -142,6 +133,7 @@ def calculate_error(X, y, w, b):
         prediction = predict(X[i], w, b)
         # Convert 0 labels to -1 for comparison
         actual = 1 if y[i] == 1 else -1
+        # print(f"Predicted: {prediction}")
         if prediction != actual:
             incorrect += 1
             
@@ -154,7 +146,7 @@ if __name__ == "__main__":
     X_train_norm, X_test_norm = normalize_features(X_train, X_test)
     
     # Try different C values
-    C_values = [0.1, 1.0, 10.0, 100.0]
+    C_values = [(100/875), (500/875), (700/875)]
     best_C = None
     best_train_error = float('inf')
     best_test_error = float('inf')
@@ -164,7 +156,7 @@ if __name__ == "__main__":
     initial_bias = 0
     
     for C in C_values:
-        w, b = stochastic_subgrad_descent(X_train_norm, y_train, initial_weights, initial_bias, C, T=100, batch_size=32)
+        w, b = stochastic_subgrad_descent(X_train_norm, y_train, initial_weights, initial_bias, C, .01, 1, T=100)
         
         train_error = calculate_error(X_train_norm, y_train, w, b)
         test_error = calculate_error(X_test_norm, y_test, w, b)
@@ -180,3 +172,4 @@ if __name__ == "__main__":
     print(f"\nBest model (C={best_C}):")
     print(f"Training error: {best_train_error:.4f}")
     print(f"Test error: {best_test_error:.4f}")
+    print(best_model[0])
