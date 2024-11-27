@@ -14,3 +14,4 @@ and you need to run it from inside the perceptron folder. From there you can eit
 
 --SVM--
 To run svm.py first go to the svm directory and input python svm.py into the terminal and that is all you need to do
+to run the dual svm and kernel_svm you need to go to the SVM directory and run python dual_svm.py
