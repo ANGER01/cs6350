@@ -1,170 +1,100 @@
 import numpy as np
 import pandas as pd
 
-def normalize_features(X_train, X_test):
-    """Normalize features using min-max scaling"""
-    X_train_norm = X_train.copy()
-    X_test_norm = X_test.copy()
+# Load Data
+def load_data(train_path, test_path):
+    train = pd.read_csv(train_path, header=None)
+    test = pd.read_csv(test_path, header=None)
     
-    for i in range(X_train.shape[1]):
-        min_val = X_train[:, i].min()
-        max_val = X_train[:, i].max()
-        if max_val - min_val != 0:
-            X_train_norm[:, i] = (X_train[:, i] - min_val) / (max_val - min_val)
-            X_test_norm[:, i] = (X_test[:, i] - min_val) / (max_val - min_val)
-    
-    return X_train_norm, X_test_norm
+    X_train = train.iloc[:, :-1].values
+    y_train = train.iloc[:, -1].values
+    X_test = test.iloc[:, :-1].values
+    y_test = test.iloc[:, -1].values
 
-def load_data():
-    train_data = pd.read_csv('bank-note/train.csv', header=None)
-    test_data = pd.read_csv('bank-note/test.csv', header=None)
-    
-    X_train = train_data.iloc[:, :-1].values
-    y_train = train_data.iloc[:, -1].values
-    
-    X_test = test_data.iloc[:, :-1].values
-    y_test = test_data.iloc[:, -1].values
-    
+    # Normalize features
+    X_train = 2 * (X_train - X_train.min()) / (X_train.max() - X_train.min()) - 1
+    X_test = 2 * (X_test - X_train.min()) / (X_train.max() - X_train.min()) - 1
+
+    # Convert labels to {-1, 1}
+    y_train = np.where(y_train == 0, -1, 1)
+    y_test = np.where(y_test == 0, -1, 1)
+
     return X_train, y_train, X_test, y_test
 
+# SVM with Stochastic Subgradient Descent
+class PrimalSVM:
+    def __init__(self, C, gamma0, a=None, schedule="1+a", max_epochs=100):
+        self.C = C
+        self.gamma0 = gamma0
+        self.a = a
+        self.schedule = schedule
+        self.max_epochs = max_epochs
+        self.w = None
+        self.b = 0
 
-def add_regularization(w, subgradient_w):
-    """
-    The total loss :( 1/2 * ||w||^2 + Hingle_loss) has w term to be added after getting subgradient of 'w'
-    
-      total_w = regularization_term + subgradient_term
-    i.e total_w = w + C *  ∑ (-y*x)
-    
-    """
-    return w + subgradient_w
+    def learning_rate(self, t):
+        if self.schedule == "1+a":
+            return self.gamma0 / (1 + (self.gamma0 / self.a) * t)
+        elif self.schedule == "1+t":
+            return self.gamma0 / (1 + t)
 
+    def fit(self, X, y):
+        n_samples, n_features = X.shape
+        self.w = np.zeros(n_features)
+        objective_curve = []
 
-def subgradients(x, y, w, b, C):
-    """
-    :x: inputs [[x1,x2], [x2,x2],...]
-    :y: labels [1, -1,...]
-    :w: initial w
-    :b: initial b
-    :C: tradeoff/ hyperparameter
-    
-    """
-    # Initialize subgradients
-    subgrad_w = w  # Changed: Initialize with w for regularization term
-    subgrad_b = 0
-    
-    # Calculate decision value
-    f_xi = np.dot(w.T, x) + b
-    decision_value = y * f_xi
+        for epoch in range(self.max_epochs):
+            indices = np.arange(n_samples)
+            np.random.shuffle(indices)
 
-    # Update subgradients based on hinge loss condition
-    if decision_value < 1:
-        subgrad_w = subgrad_w + C * (-y * x)  # Changed: Add to regularization term
-        subgrad_b = -C * y
-    
-    return (subgrad_w, subgrad_b)  # Removed: add_regularization() call as regularization is now included
+            for t, i in enumerate(indices):
+                lr = self.learning_rate(t)
+                condition = y[i] * (np.dot(X[i], self.w) + self.b) >= 1
 
+                if condition:
+                    self.w -= lr * self.w
+                else:
+                    self.w -= lr * (self.w - self.C * y[i] * X[i])
+                    self.b += lr * self.C * y[i]
 
-def stochastic_subgrad_descent(x_vals: np.array, y_vals: np.array, int_weights, int_bias, C,gamma_0, a, T=100):
-    """
-    Simple stochastic gradient descent implementation
-    """
-    w = int_weights
-    b = int_bias
-    n_samples = len(y_vals)
-    
-    # Create indices array
-    indices = np.arange(n_samples)
-    
-    best_w = w
-    best_b = b
-    best_error = float('inf')
-    
-    for t in range(1, T+1):
-        # Shuffle data at the start of each epoch
-        np.random.shuffle(indices)
-        
-        # Calculate learning rate
-        learning_rate = gamma_0 / (1 + (gamma_0 / a) * (t * n_samples))
-        
-        # Process each sample
-        for idx in indices:
-            x = x_vals[idx]
-            y = y_vals[idx]
-            
-            # Get subgradients for single sample
-            w_grad, b_grad = subgradients(x, y, w, b, C)
-            
-            # Update weights and bias
-            w = w - learning_rate * w_grad
-            b = b - learning_rate * b_grad
-        
-        # Keep track of best model
-        current_error = calculate_error(x_vals, y_vals, w, b)
-        if current_error < best_error:
-            best_error = current_error
-            best_w = w.copy()
-            best_b = b
-    
-    return best_w, best_b
+            # Compute objective function
+            hinge_loss = np.maximum(0, 1 - y * (X @ self.w + self.b)).mean()
+            objective = 0.5 * np.dot(self.w, self.w) + self.C * hinge_loss
+            objective_curve.append(objective)
 
+        return objective_curve
 
-def predict(x, w, b):
-    """
-    Predict class using w and b
-    Returns 1 if w·x + b ≥ 0, -1 otherwise
-    """
-    temp = np.dot(w, x) + b
-    # print(f"temp: {temp}")
-    return 1 if temp >= 0 else -1
+    def predict(self, X):
+        return np.sign(np.dot(X, self.w) + self.b)
 
-def calculate_error(X, y, w, b):
-    """
-    Calculate prediction error rate
-    """
-    incorrect = 0
-    total = len(y)
-    
-    for i in range(total):
-        prediction = predict(X[i], w, b)
-        # Convert 0 labels to -1 for comparison
-        actual = 1 if y[i] == 1 else -1
-        print(f"Predicted: {prediction}")
-        if prediction != actual:
-            incorrect += 1
-            
-    return incorrect / total
+# Evaluate Model
+def evaluate(y_true, y_pred):
+    return np.mean(y_true != y_pred)
 
+# Main
 if __name__ == "__main__":
-    X_train, y_train, X_test, y_test = load_data()
+    X_train, y_train, X_test, y_test = load_data("bank-note/train.csv", "bank-note/test.csv")
     
-    # Normalize features
-    X_train_norm, X_test_norm = normalize_features(X_train, X_test)
-    
-    # Try different C values
-    C_values = [(100/875), (500/875), (700/875)]
-    best_C = None
-    best_train_error = float('inf')
-    best_test_error = float('inf')
-    best_model = None
-    
-    initial_weights = np.zeros(X_train.shape[1])  # Initialize with zeros
-    initial_bias = 0
-    
-    for C in C_values:
-        w, b = stochastic_subgrad_descent(X_train_norm, y_train, initial_weights, initial_bias, C, .01, 1, T=100)
+    Cs = [100 / 873, 500 / 873, 700 / 873]
+    gamma0 = .015
+    a = 7
+
+    for C in Cs:
+        print(f"Testing C={C}")
         
-        train_error = calculate_error(X_train_norm, y_train, w, b)
-        test_error = calculate_error(X_test_norm, y_test, w, b)
+        # Schedule 1
+        svm_1 = PrimalSVM(C=C, gamma0=gamma0, a=a, schedule="1+a", max_epochs=100)
+        curve_1 = svm_1.fit(X_train, y_train)
+        train_error_1 = evaluate(y_train, svm_1.predict(X_train))
+        test_error_1 = evaluate(y_test, svm_1.predict(X_test))
         
-        print(f"C={C}: Training error: {train_error:.4f}, Test error: {test_error:.4f}")
+        # Schedule 2
+        svm_2 = PrimalSVM(C=C, gamma0=gamma0, schedule="1+t", max_epochs=100)
+        curve_2 = svm_2.fit(X_train, y_train)
+        train_error_2 = evaluate(y_train, svm_2.predict(X_train))
+        test_error_2 = evaluate(y_test, svm_2.predict(X_test))
         
-        if test_error < best_test_error:
-            best_C = C
-            best_test_error = test_error
-            best_train_error = train_error
-            best_model = (w, b)
-    
-    print(f"\nBest model (C={best_C}):")
-    print(f"Training error: {best_train_error:.4f}")
-    print(f"Test error: {best_test_error:.4f}")
-    print(best_model[0])
+        print(f"Learned Weights and Bias: W:{svm_1.w} B:{svm_1.b}")
+        print(f"Schedule 1+a: Train Error={train_error_1}, Test Error={test_error_1}")
+        print(f"Learned Weights and Bias: W:{svm_2.w} B:{svm_2.b}")
+        print(f"Schedule 1+t: Train Error={train_error_2}, Test Error={test_error_2}")
