@@ -15,10 +15,10 @@ class NeuralNetwork:
         self.weights = []
         self.biases = []
 
-        # Initialize weights and biases
+        # Initialize weights with small random values instead of zeros
         for i in range(len(layer_sizes) - 1):
-            self.weights.append(np.zeros((layer_sizes[i], layer_sizes[i+1])))
-            self.biases.append(np.zeros((1, layer_sizes[i+1])))
+            self.weights.append(np.random.randn(layer_sizes[i], layer_sizes[i+1]) * np.sqrt(2.0/layer_sizes[i]))
+            self.biases.append(np.random.randn(1, layer_sizes[i+1]) * 0.1)
 
     def sigmoid(self, z):
         """Sigmoid activation function."""
@@ -53,23 +53,26 @@ class NeuralNetwork:
             self.weights[i] -= self.learning_rate * np.dot(activations[i].T, deltas[i]) / m
             self.biases[i] -= self.learning_rate * np.sum(deltas[i], axis=0, keepdims=True) / m
 
+        # Add this at the end of the method
+        for i, w in enumerate(self.weights):
+            print(f"Layer {i} weights range: [{np.min(w):.4f}, {np.max(w):.4f}]")
+
     def train(self, X, y, epochs=100):
-        """
-        Train the network using stochastic gradient descent.
-       
-        Parameters:
-        - X: Training data (m x n).
-        - y: Training labels (m x output_size).
-        - epochs: Number of training iterations.
-        """
+        """Train the network using stochastic gradient descent."""
         for epoch in range(epochs):
             activations = self.forward(X)
             self.backward(activations, y)
 
             # Compute loss (mean squared error)
             loss = np.mean((activations[-1] - y) ** 2)
+            
+            # Monitor predictions during training
+            predictions = (activations[-1] > 0.5).astype(int)
+            accuracy = np.mean(predictions == y)
+            
             if epoch % 10 == 0:
-                print(f"Epoch {epoch}: Loss = {loss:.4f}")
+                print(f"Epoch {epoch}: Loss = {loss:.4f}, Accuracy = {accuracy:.4f}")
+                print(f"Output range: [{np.min(activations[-1]):.4f}, {np.max(activations[-1]):.4f}]")
 
     def predict(self, X):
         """
@@ -102,12 +105,12 @@ if __name__ == "__main__":
 
     y_train = y_train.reshape(-1, 1)
     y_test = y_test.reshape(-1, 1)
-
+    print(y_train)
     # Define and train the network
-    nn = NeuralNetwork(layer_sizes=[4, 4, 64, 1], learning_rate=0.1)
-    print(nn.weights)
+    nn = NeuralNetwork(layer_sizes=[4, 16, 1], learning_rate=0.12)
+
     nn.train(X_train, y_train, epochs=100)
-    print(nn.weights)
+
     # Test the network
     predictions = nn.predict(X_test)
     predictions = (predictions > 0.5).astype(int)
