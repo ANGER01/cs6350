@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 class NeuralNetwork:
-    def __init__(self, layer_sizes, learning_rate=0.1):
+    def __init__(self, layer_sizes, learning_rate=0.1, zero_flag=False):
         """
         Initialize the neural network.
        
@@ -12,13 +12,18 @@ class NeuralNetwork:
         """
         self.layer_sizes = layer_sizes
         self.learning_rate = learning_rate
+        self.zero_flag = zero_flag
         self.weights = []
         self.biases = []
 
-        # Initialize weights with small random values instead of zeros
-        for i in range(len(layer_sizes) - 1):
-            self.weights.append(np.random.randn(layer_sizes[i], layer_sizes[i+1]) * np.sqrt(2.0/layer_sizes[i]))
-            self.biases.append(np.random.randn(1, layer_sizes[i+1]) * 0.1)
+        if not self.zero_flag:
+            for i in range(len(layer_sizes) - 1):
+                self.weights.append(np.random.normal(0, 1, (layer_sizes[i], layer_sizes[i+1])))
+                self.biases.append(np.random.normal(0, 1, (1, layer_sizes[i+1])))
+        else:
+            for i in range(len(layer_sizes) - 1):
+                self.weights.append(np.zeros((layer_sizes[i], layer_sizes[i+1])))
+                self.biases.append(np.zeros((1, layer_sizes[i+1])))
 
     def sigmoid(self, z):
         """Sigmoid activation function."""
@@ -53,37 +58,29 @@ class NeuralNetwork:
             self.weights[i] -= self.learning_rate * np.dot(activations[i].T, deltas[i]) / m
             self.biases[i] -= self.learning_rate * np.sum(deltas[i], axis=0, keepdims=True) / m
 
-        # Add this at the end of the method
-        for i, w in enumerate(self.weights):
-            print(f"Layer {i} weights range: [{np.min(w):.4f}, {np.max(w):.4f}]")
 
     def train(self, X, y, epochs=100):
-        """Train the network using stochastic gradient descent."""
+        initial_lr = self.learning_rate
+        d = 2  # You can adjust this parameter
+        
         for epoch in range(epochs):
-            activations = self.forward(X)
-            self.backward(activations, y)
-
-            # Compute loss (mean squared error)
-            loss = np.mean((activations[-1] - y) ** 2)
+            # Update learning rate according to schedule
+            self.learning_rate = initial_lr / (1 + (initial_lr * epoch / d))
             
-            # Monitor predictions during training
-            predictions = (activations[-1] > 0.5).astype(int)
-            accuracy = np.mean(predictions == y)
-            
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch}: Loss = {loss:.4f}, Accuracy = {accuracy:.4f}")
-                print(f"Output range: [{np.min(activations[-1]):.4f}, {np.max(activations[-1]):.4f}]")
+            indices = np.random.permutation(len(X))
+            X_shuffled = X[indices]
+            y_shuffled = y[indices]
+            activations = self.forward(X_shuffled)
+            self.backward(activations, y_shuffled)
+        
+        # Calculate final training loss and accuracy
+        final_activations = self.forward(X)
+        training_loss = np.mean((final_activations[-1] - y) ** 2)
+        training_predictions = (final_activations[-1] > 0.5).astype(int)
+        training_accuracy = np.sum(y.flatten() == training_predictions.flatten()) / y.shape[0]
+        return training_loss, training_accuracy
 
     def predict(self, X):
-        """
-        Predict the output for given input X.
-       
-        Parameters:
-        - X: Input data (m x n).
-       
-        Returns:
-        - Predictions (m x output_size).
-        """
         activations = self.forward(X)
         return activations[-1]
 
@@ -98,28 +95,31 @@ def load_data(train_path, test_path):
 
     return X_train, y_train, X_test, y_test
 
-# Example usage:
 if __name__ == "__main__":
-    # Create synthetic training data
     X_train, y_train, X_test, y_test = load_data("bank-note/train.csv", "bank-note/test.csv")
 
     y_train = y_train.reshape(-1, 1)
     y_test = y_test.reshape(-1, 1)
-    print(y_train)
-    # Define and train the network
-    nn = NeuralNetwork(layer_sizes=[4, 16, 1], learning_rate=0.12)
 
-    nn.train(X_train, y_train, epochs=100)
-
-    # Test the network
-    predictions = nn.predict(X_test)
-    predictions = (predictions > 0.5).astype(int)
-
+    zero_flag = False
     
-    correct = np.sum(y_test.flatten() == predictions.flatten())
-    accuracy = correct / y_test.shape[0]
-    # Print results
-    print(f"Accuracy:{accuracy}")
-    # Print results
-    print("Test Predictions:", predictions.flatten())
-    print("True Labels:", y_test.flatten())
+    if zero_flag:
+        print("Weights Zeroed out")
+    else:
+        print("Weights random normal distribution")
+    widths = [5, 10, 25, 50, 100]
+    for val in widths:
+        nn = NeuralNetwork(layer_sizes=[4, val, val, 1], learning_rate=0.4, zero_flag=zero_flag)
+        train_loss, train_accuracy = nn.train(X_train, y_train, epochs=150)
+
+        predictions = nn.predict(X_test)
+        predictions = (predictions > 0.5).astype(int)
+        
+        correct = np.sum(y_test.flatten() == predictions.flatten())
+        test_accuracy = correct / y_test.shape[0]
+
+        print(f"Layer Width:{val}")
+        print(f"Training Loss:{train_loss:.4f}")
+        print(f"Training Accuracy:{train_accuracy:.4f}")
+        print(f"Test Accuracy:{test_accuracy:.4f}")
+        print("------------------------")

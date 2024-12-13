@@ -15,3 +15,7 @@ and you need to run it from inside the perceptron folder. From there you can eit
 --SVM--
 To run svm.py first go to the svm directory and input python svm.py into the terminal and that is all you need to do
 to run the dual svm and kernel_svm you need to go to the SVM directory and run python dual_svm.py
+
+
+--Neural Network--
+To run nn.py go into the Neural Networks directory and input in the terminal "python nn.py" To change the weights to be intialized by zeros you need to change the flag in the mains function.
