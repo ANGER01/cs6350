@@ -19,3 +19,6 @@ to run the dual svm and kernel_svm you need to go to the SVM directory and run p
 
 --Neural Network--
 To run nn.py go into the Neural Networks directory and input in the terminal "python nn.py" To change the weights to be intialized by zeros you need to change the flag in the mains function.
+
+--Final Project--
+To run health.py go to the FinalProject directory and input in the terminal "python health.py" That is all that is required. Make sure you have the proper installs on your machine. I use pandas and sklearn.
