@@ -35,14 +35,7 @@ if __name__ == "__main__":
 
     # Split data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Base Decision Tree
-    clf = DecisionTreeClassifier(
-        max_depth=2, 
-        random_state=42,
-        class_weight={0: 1, 1: 2}  # Penalize false negatives more
-    )
-
+    
     def print_per_class_accuracy(y_true, y_pred, model_name):
         cm = confusion_matrix(y_true, y_pred)
         print(f"\n{model_name} results:")
@@ -52,6 +45,13 @@ if __name__ == "__main__":
         false_positive_rate = cm[0,1] / (cm[0,0] + cm[0,1])
         print(f"\nFalse Negative Rate: {false_negative_rate:.2%}")
         print(f"False Positive Rate: {false_positive_rate:.2%}")
+        
+    # Base Decision Tree
+    clf = DecisionTreeClassifier(
+        max_depth=2, 
+        random_state=42,
+        class_weight={0: 1, 1: 2}  # Penalize false negatives more
+    )
 
     # Decision Tree
     clf.fit(X_train, y_train)
